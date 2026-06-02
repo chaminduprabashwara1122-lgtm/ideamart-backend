@@ -25,9 +25,16 @@ const NETLIFY_URL =
 
 app.post("/api/request-otp", async (req, res) => {
   try {
-    let { mobile } = req.body;
+    let mobile = req.body.mobile || req.body.phoneNumber;
 
     console.log("OTP Request Received:", mobile);
+
+    if (!mobile) {
+      return res.status(400).json({
+        status: "ERROR",
+        message: "Mobile number missing",
+      });
+    }
 
     // FORMAT NUMBER
     if (mobile.startsWith("0")) {
@@ -146,9 +153,16 @@ app.post("/api/verify-otp", async (req, res) => {
 
 app.post("/api/unsubscribe", async (req, res) => {
   try {
-    let { mobile } = req.body;
+    let mobile = req.body.mobile || req.body.phoneNumber;
 
     console.log("UNSUBSCRIBE REQUEST:", mobile);
+
+    if (!mobile) {
+      return res.status(400).json({
+        status: "ERROR",
+        message: "Mobile number missing",
+      });
+    }
 
     if (mobile.startsWith("0")) {
       mobile = "94" + mobile.substring(1);

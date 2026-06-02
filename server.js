@@ -1,6 +1,6 @@
 const express = require("express");
-const cors = require("cors");
 const axios = require("axios");
+const cors = require("cors");
 
 const app = express();
 
@@ -9,351 +9,267 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 10000;
 
-const APP_ID = "APP_068109";
+// =========================
+// IDEAMART CONFIG
+// =========================
 
+const APP_ID = "APP_068109";
 const PASSWORD = "Chamindu@2004";
 
-const NETLIFY_URL =
-  "https://euphonious-youtiao-90caed.netlify.app";
+const NETLIFY_URL = "https://euphonious-youtiao-90caed.netlify.app";
 
-let savedReferenceNo = "";
-
-
-// HOME ROUTE
-
-app.get("/", (req, res) => {
-
-  res.send("IdeaMart Backend Running");
-
-});
-
-
-// ========================
-// REQUEST OTP
-// ========================
+// =========================
+// OTP REQUEST
+// =========================
 
 app.post("/api/request-otp", async (req, res) => {
 
-  try {
+    try {
 
-    let { phoneNumber } = req.body;
+        const { phoneNumber } = req.body;
 
-    console.log("RAW NUMBER:", phoneNumber);
+        console.log("=================================");
+        console.log("RAW NUMBER:", phoneNumber);
 
-    // Convert 078xxxxxxx -> 9478xxxxxxx
+        let formattedNumber = phoneNumber.trim();
 
-    if (phoneNumber.startsWith("0")) {
+        if (formattedNumber.startsWith("0")) {
 
-      phoneNumber =
-        "94" + phoneNumber.substring(1);
+            formattedNumber =
+                "tel:94" + formattedNumber.substring(1);
 
-    }
+        } else if (!formattedNumber.startsWith("tel:")) {
 
-    // Add tel:
-
-    const formattedNumber =
-      `tel:${phoneNumber}`;
-
-    console.log(
-      "FORMATTED NUMBER:",
-      formattedNumber
-    );
-
-    // PAYLOAD
-
-    const payload = {
-
-      applicationId: APP_ID,
-
-      password: PASSWORD,
-
-      subscriberId: formattedNumber,
-
-      applicationHash: "123456",
-
-      applicationMetaData: {
-
-        client: "WEB",
-
-        device: "PC",
-
-        os: "WINDOWS",
-
-        appCode: NETLIFY_URL
-
-      }
-
-    };
-
-    console.log(
-      "OTP REQUEST PAYLOAD:"
-    );
-
-    console.log(
-      JSON.stringify(payload, null, 2)
-    );
-
-    // SEND REQUEST
-
-    const response = await axios.post(
-
-      "https://api.ideamart.io/subscription/otp/request",
-
-      payload,
-
-      {
-
-        headers: {
-
-          "Content-Type":
-            "application/json"
-
+            formattedNumber =
+                "tel:" + formattedNumber;
         }
 
-      }
+        console.log("FORMATTED NUMBER:", formattedNumber);
 
-    );
+        const payload = {
 
-    console.log(
-      "IDEAMART OTP RESPONSE:"
-    );
+            applicationId: APP_ID,
 
-    console.log(response.data);
+            password: PASSWORD,
 
-    // SAVE REFERENCE NUMBER
+            subscriberId: formattedNumber,
 
-    savedReferenceNo =
-      response.data.referenceNo;
+            applicationHash: "testhash123456",
 
-    // SEND TO FRONTEND
+            applicationMetaData: {
 
-    res.json(response.data);
+                client: "WEB",
 
-  } catch (error) {
+                device: "PC",
 
-    console.log("OTP REQUEST ERROR");
+                os: "WINDOWS",
 
-    if (error.response) {
+                appCode: NETLIFY_URL
+            }
+        };
 
-      console.log(
-        error.response.data
-      );
+        console.log("OTP REQUEST PAYLOAD:");
+        console.log(
+            JSON.stringify(payload, null, 2)
+        );
 
-      res.status(500).json(
-        error.response.data
-      );
+        const response = await axios.post(
 
-    } else {
+            "https://api.ideamart.io/subscription/otp/request",
 
-      console.log(error.message);
+            payload,
 
-      res.status(500).json({
+            {
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            }
+        );
 
-        error: error.message
+        console.log("=================================");
+        console.log("IDEAMART OTP RESPONSE:");
+        console.log(response.data);
 
-      });
+        res.status(200).json(response.data);
 
+    } catch (error) {
+
+        console.log("=================================");
+        console.log("OTP REQUEST ERROR");
+
+        if (error.response) {
+
+            console.log("ERROR RESPONSE:");
+            console.log(error.response.data);
+
+            res.status(500).json(
+                error.response.data
+            );
+
+        } else {
+
+            console.log(error.message);
+
+            res.status(500).json({
+                error: error.message
+            });
+        }
     }
-
-  }
-
 });
 
-
-// ========================
+// =========================
 // VERIFY OTP
-// ========================
+// =========================
 
 app.post("/api/verify-otp", async (req, res) => {
 
-  try {
+    try {
 
-    const { otp } = req.body;
+        const { referenceNo, otp } = req.body;
 
-    const payload = {
+        console.log("=================================");
+        console.log("VERIFY OTP REQUEST");
 
-      applicationId: APP_ID,
+        const payload = {
 
-      password: PASSWORD,
+            applicationId: APP_ID,
 
-      referenceNo:
-        savedReferenceNo,
+            password: PASSWORD,
 
-      otp: otp
+            referenceNo: referenceNo,
 
-    };
+            otp: otp
+        };
 
-    console.log(
-      "VERIFY PAYLOAD:"
-    );
+        console.log(
+            JSON.stringify(payload, null, 2)
+        );
 
-    console.log(
-      JSON.stringify(payload, null, 2)
-    );
+        const response = await axios.post(
 
-    const response = await axios.post(
+            "https://api.ideamart.io/subscription/otp/verify",
 
-      "https://api.ideamart.io/subscription/otp/verify",
+            payload,
 
-      payload,
+            {
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            }
+        );
 
-      {
+        console.log("VERIFY RESPONSE:");
+        console.log(response.data);
 
-        headers: {
+        res.status(200).json(response.data);
 
-          "Content-Type":
-            "application/json"
+    } catch (error) {
 
+        console.log("VERIFY ERROR");
+
+        if (error.response) {
+
+            console.log(error.response.data);
+
+            res.status(500).json(
+                error.response.data
+            );
+
+        } else {
+
+            console.log(error.message);
+
+            res.status(500).json({
+                error: error.message
+            });
         }
-
-      }
-
-    );
-
-    console.log(
-      "VERIFY RESPONSE:"
-    );
-
-    console.log(response.data);
-
-    res.json(response.data);
-
-  } catch (error) {
-
-    console.log("VERIFY ERROR");
-
-    if (error.response) {
-
-      console.log(
-        error.response.data
-      );
-
-      res.status(500).json(
-        error.response.data
-      );
-
-    } else {
-
-      console.log(error.message);
-
-      res.status(500).json({
-
-        error: error.message
-
-      });
-
     }
-
-  }
-
 });
 
-
-// ========================
+// =========================
 // UNSUBSCRIBE
-// ========================
+// =========================
 
 app.post("/api/unsubscribe", async (req, res) => {
 
-  try {
+    try {
 
-    let { phoneNumber } = req.body;
+        const { phoneNumber } = req.body;
 
-    if (phoneNumber.startsWith("0")) {
+        let formattedNumber = phoneNumber.trim();
 
-      phoneNumber =
-        "94" + phoneNumber.substring(1);
+        if (formattedNumber.startsWith("0")) {
 
-    }
+            formattedNumber =
+                "tel:94" + formattedNumber.substring(1);
 
-    const formattedNumber =
-      `tel:${phoneNumber}`;
+        } else if (!formattedNumber.startsWith("tel:")) {
 
-    const payload = {
-
-      applicationId: APP_ID,
-
-      password: PASSWORD,
-
-      subscriberId:
-        formattedNumber
-
-    };
-
-    console.log(
-      "UNSUBSCRIBE PAYLOAD:"
-    );
-
-    console.log(
-      JSON.stringify(payload, null, 2)
-    );
-
-    const response = await axios.post(
-
-      "https://api.ideamart.io/subscription/base/request",
-
-      payload,
-
-      {
-
-        headers: {
-
-          "Content-Type":
-            "application/json"
-
+            formattedNumber =
+                "tel:" + formattedNumber;
         }
 
-      }
+        console.log("=================================");
+        console.log("UNSUBSCRIBE REQUEST");
 
-    );
+        const payload = {
 
-    console.log(
-      "UNSUBSCRIBE RESPONSE:"
-    );
+            applicationId: APP_ID,
 
-    console.log(response.data);
+            password: PASSWORD,
 
-    res.json(response.data);
+            subscriberId: formattedNumber
+        };
 
-  } catch (error) {
+        console.log(
+            JSON.stringify(payload, null, 2)
+        );
 
-    console.log(
-      "UNSUBSCRIBE ERROR"
-    );
+        const response = await axios.post(
 
-    if (error.response) {
+            "https://api.ideamart.io/subscription/base/unregister",
 
-      console.log(
-        error.response.data
-      );
+            payload,
 
-      res.status(500).json(
-        error.response.data
-      );
+            {
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            }
+        );
 
-    } else {
+        console.log("UNSUBSCRIBE RESPONSE:");
+        console.log(response.data);
 
-      console.log(error.message);
+        res.status(200).json(response.data);
 
-      res.status(500).json({
+    } catch (error) {
 
-        error: error.message
+        console.log("UNSUBSCRIBE ERROR");
 
-      });
+        if (error.response) {
 
+            console.log(error.response.data);
+
+            res.status(500).json(
+                error.response.data
+            );
+
+        } else {
+
+            console.log(error.message);
+
+            res.status(500).json({
+                error: error.message
+            });
+        }
     }
-
-  }
-
 });
 
-
-// START SERVER
+// =========================
 
 app.listen(PORT, () => {
 
-  console.log(
-    `Server started on port ${PORT}`
-  );
+    console.log(`Server started on port ${PORT}`);
 
 });

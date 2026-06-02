@@ -9,25 +9,20 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 10000;
 
-// =========================
-// REQUEST OTP
-// =========================
-app.post("/api/request-otp", async (req, res) => {
-
+app.post("/request-otp", async (req, res) => {
   try {
 
-    let { mobile } = req.body;
+    let mobile = req.body.mobile;
 
     console.log("OTP Request Received:", mobile);
 
     if (!mobile) {
-      return res.json({
+      return res.status(400).json({
         success: false,
-        message: "Mobile number missing"
+        message: "Mobile number required"
       });
     }
 
-    // 07XXXXXXXX -> 947XXXXXXXX
     if (mobile.startsWith("0")) {
       mobile = "94" + mobile.substring(1);
     }
@@ -37,7 +32,6 @@ app.post("/api/request-otp", async (req, res) => {
       password: "Chamindu2004",
       subscriberId: `tel:${mobile}`,
       applicationHash: "1234567890abcdef",
-
       applicationMetaData: {
         client: "APP",
         device: "ANDROID",
@@ -48,8 +42,9 @@ app.post("/api/request-otp", async (req, res) => {
 
     console.log("SENDING TO IDEAMART:", payload);
 
+    // ✅ CORRECT URL
     const response = await axios.post(
-      "https://ideamartotp.dialog.lk/subscribe",
+      "https://api.dialog.lk/ideamart/otp/request",
       payload,
       {
         headers: {
@@ -60,37 +55,30 @@ app.post("/api/request-otp", async (req, res) => {
 
     console.log("IDEAMART RESPONSE:", response.data);
 
-    res.json({
-      success: true,
-      data: response.data
-    });
+    res.json(response.data);
 
-  } catch (error) {
+  } catch (err) {
 
     console.log("OTP ERROR");
 
-    if (error.response) {
-      console.log(error.response.data);
+    if (err.response) {
+      console.log(err.response.data);
+      res.status(500).json(err.response.data);
     } else {
-      console.log(error.message);
+      console.log(err.message);
+      res.status(500).json({
+        success: false,
+        error: err.message
+      });
     }
-
-    res.json({
-      success: false,
-      message: "OTP Failed"
-    });
   }
-
 });
 
-// =========================
-// VERIFY OTP
-// =========================
-app.post("/api/verify-otp", async (req, res) => {
-
+app.post("/verify-otp", async (req, res) => {
   try {
 
-    let { mobile, otp } = req.body;
+    let mobile = req.body.mobile;
+    const otp = req.body.otp;
 
     if (mobile.startsWith("0")) {
       mobile = "94" + mobile.substring(1);
@@ -100,12 +88,11 @@ app.post("/api/verify-otp", async (req, res) => {
       applicationId: "APP_068109",
       password: "Chamindu2004",
       subscriberId: `tel:${mobile}`,
-      applicationHash: "1234567890abcdef",
       otp: otp
     };
 
     const response = await axios.post(
-      "https://ideamartotp.dialog.lk/verify",
+      "https://api.dialog.lk/ideamart/otp/verify",
       payload,
       {
         headers: {
@@ -116,86 +103,25 @@ app.post("/api/verify-otp", async (req, res) => {
 
     console.log("VERIFY RESPONSE:", response.data);
 
-    res.json({
-      success: true,
-      data: response.data
-    });
+    res.json(response.data);
 
-  } catch (error) {
+  } catch (err) {
 
     console.log("VERIFY ERROR");
 
-    if (error.response) {
-      console.log(error.response.data);
+    if (err.response) {
+      console.log(err.response.data);
+      res.status(500).json(err.response.data);
     } else {
-      console.log(error.message);
+      console.log(err.message);
+      res.status(500).json({
+        success: false,
+        error: err.message
+      });
     }
-
-    res.json({
-      success: false,
-      message: "OTP Verification Failed"
-    });
   }
-
 });
 
-// =========================
-// UNSUBSCRIBE
-// =========================
-app.post("/api/unsubscribe", async (req, res) => {
-
-  try {
-
-    let { mobile } = req.body;
-
-    if (mobile.startsWith("0")) {
-      mobile = "94" + mobile.substring(1);
-    }
-
-    const payload = {
-      applicationId: "APP_068109",
-      password: "Chamindu2004",
-      subscriberId: `tel:${mobile}`
-    };
-
-    const response = await axios.post(
-      "https://ideamartotp.dialog.lk/unsubscribe",
-      payload,
-      {
-        headers: {
-          "Content-Type": "application/json"
-        }
-      }
-    );
-
-    console.log("UNSUBSCRIBE RESPONSE:", response.data);
-
-    res.json({
-      success: true,
-      data: response.data
-    });
-
-  } catch (error) {
-
-    console.log("UNSUBSCRIBE ERROR");
-
-    if (error.response) {
-      console.log(error.response.data);
-    } else {
-      console.log(error.message);
-    }
-
-    res.json({
-      success: false,
-      message: "Unsubscribe Failed"
-    });
-  }
-
-});
-
-// =========================
-// START SERVER
-// =========================
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
